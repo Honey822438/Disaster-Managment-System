@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment files (keep .env.example, ignore actual .env)
+.env
+backend/.env
+frontend/.env.local
+admin-frontend/.env.local
+hospital-frontend/.env.local
+citizen-frontend/.env.local
+rescue-frontend/.env.local
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+
+# Prisma generated client
+backend/node_modules/.prisma/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Docker volumes (not tracked)
+mysql_data/

@@ -1,0 +1,365 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  admin
+  operator
+  field_officer
+  warehouse_manager
+  finance_officer
+}
+
+enum DisasterType {
+  Flood
+  Earthquake
+  Fire
+  Cyclone
+  Landslide
+  Other
+}
+
+enum Severity {
+  Low
+  Medium
+  High
+  Critical
+}
+
+enum ReportStatus {
+  Pending
+  Assigned
+  InProgress
+  Resolved
+  Closed
+}
+
+enum TeamType {
+  Medical
+  Fire
+  Rescue
+  Relief
+}
+
+enum TeamStatus {
+  Available
+  Assigned
+  Busy
+}
+
+enum ResourceType {
+  Food
+  Water
+  Medicine
+  Shelter
+  Equipment
+  Other
+}
+
+enum AllocationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum PatientStatus {
+  admitted
+  discharged
+  transferred
+}
+
+enum ExpenseCategory {
+  Medical
+  Transport
+  Equipment
+  Personnel
+  Infrastructure
+  Other
+}
+
+enum ApprovalType {
+  ResourceAllocation
+  BudgetRequest
+  TeamDeployment
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  auditLogs         AuditLog[]
+  approvalWorkflows ApprovalWorkflow[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model DisasterEvent {
+  id          Int          @id @default(autoincrement())
+  name        String       @db.VarChar(100)
+  type        DisasterType
+  location    String       @db.VarChar(255)
+  startDate   DateTime
+  endDate     DateTime?
+  description String?      @db.Text
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  emergencyReports    EmergencyReport[]
+  resourceAllocations ResourceAllocation[]
+  donations           Donation[]
+  expenses            Expense[]
+
+  @@index([type])
+  @@index([startDate])
+}
+
+model EmergencyReport {
+  id              Int          @id @default(autoincrement())
+  location        String       @db.VarChar(255)
+  disasterType    DisasterType
+  severity        Severity
+  description     String       @db.Text
+  reportedBy      String?      @db.VarChar(100)
+  contactNumber   String?      @db.VarChar(20)
+  status          ReportStatus @default(Pending)
+  reportedAt      DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  disasterEventId Int?
+
+  // Relations
+  disasterEvent   DisasterEvent?   @relation(fields: [disasterEventId], references: [id], onDelete: SetNull)
+  teamAssignments TeamAssignment[]
+  patients        Patient[]
+
+  // Custom Indexes (Requirement 15)
+  @@index([location], name: "idx_reports_location")
+  @@index([disasterType, severity], name: "idx_reports_type_severity")
+  @@index([reportedAt, status], name: "idx_reports_date_status")
+}
+
+model RescueTeam {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(100)
+  type        TeamType
+  location    String     @db.VarChar(255)
+  status      TeamStatus @default(Available)
+  memberCount Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  teamAssignments TeamAssignment[]
+
+  @@index([status])
+  @@index([type])
+}
+
+model TeamAssignment {
+  id                Int          @id @default(autoincrement())
+  rescueTeamId      Int
+  emergencyReportId Int
+  assignedAt        DateTime     @default(now())
+  completedAt       DateTime?
+  status            ReportStatus @default(Assigned)
+  notes             String?      @db.Text
+
+  // Relations
+  rescueTeam      RescueTeam      @relation(fields: [rescueTeamId], references: [id], onDelete: Cascade)
+  emergencyReport EmergencyReport @relation(fields: [emergencyReportId], references: [id], onDelete: Cascade)
+
+  @@index([rescueTeamId])
+  @@index([emergencyReportId])
+  @@index([status])
+}
+
+model Warehouse {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  location  String   @db.VarChar(255)
+  capacity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  resources Resource[]
+
+  @@index([location])
+}
+
+model Resource {
+  id           Int          @id @default(autoincrement())
+  name         String       @db.VarChar(100)
+  resourceType ResourceType
+  quantity     Int
+  threshold    Int          @default(100)
+  unit         String       @db.VarChar(50)
+  warehouseId  Int
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  warehouse           Warehouse            @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  resourceAllocations ResourceAllocation[]
+
+  // Custom Index (Requirement 15)
+  @@index([resourceType, quantity], name: "idx_resources_type_qty")
+  @@index([warehouseId])
+}
+
+model ResourceAllocation {
+  id              Int              @id @default(autoincrement())
+  resourceId      Int
+  disasterEventId Int
+  quantity        Int
+  status          AllocationStatus @default(pending)
+  requestedBy     String           @db.VarChar(100)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  resource         Resource          @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  disasterEvent    DisasterEvent     @relation(fields: [disasterEventId], references: [id], onDelete: Cascade)
+  approvalWorkflow ApprovalWorkflow?
+
+  // Custom Index (Requirement 15)
+  @@index([status, createdAt], name: "idx_allocations_status_date")
+  @@index([resourceId])
+  @@index([disasterEventId])
+}
+
+model Hospital {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(100)
+  location      String   @db.VarChar(255)
+  totalBeds     Int
+  availableBeds Int
+  contactNumber String   @db.VarChar(20)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  patients Patient[]
+
+  @@index([location])
+}
+
+model Patient {
+  id                Int           @id @default(autoincrement())
+  name              String        @db.VarChar(100)
+  age               Int
+  gender            String        @db.VarChar(10)
+  condition         String        @db.Text
+  status            PatientStatus @default(admitted)
+  hospitalId        Int
+  emergencyReportId Int?
+  admittedAt        DateTime      @default(now())
+  dischargedAt      DateTime?
+
+  // Relations
+  hospital        Hospital         @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  emergencyReport EmergencyReport? @relation(fields: [emergencyReportId], references: [id], onDelete: SetNull)
+
+  @@index([hospitalId])
+  @@index([status])
+}
+
+model Donation {
+  id              Int       @id @default(autoincrement())
+  donorName       String    @db.VarChar(100)
+  organization    String?   @db.VarChar(100)
+  amount          Decimal   @db.Decimal(15, 2)
+  disasterEventId Int
+  donatedAt       DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  disasterEvent DisasterEvent @relation(fields: [disasterEventId], references: [id], onDelete: Cascade)
+
+  // Custom Index (Requirement 15)
+  @@index([donatedAt], name: "idx_donations_date")
+  @@index([disasterEventId])
+}
+
+model Expense {
+  id              Int             @id @default(autoincrement())
+  category        ExpenseCategory
+  amount          Decimal         @db.Decimal(15, 2)
+  description     String          @db.Text
+  disasterEventId Int
+  createdAt       DateTime        @default(now())
+
+  // Relations
+  disasterEvent DisasterEvent @relation(fields: [disasterEventId], references: [id], onDelete: Cascade)
+
+  // Custom Index (Requirement 15)
+  @@index([category, createdAt], name: "idx_expenses_category_date")
+  @@index([disasterEventId])
+}
+
+model ApprovalWorkflow {
+  id                   Int            @id @default(autoincrement())
+  type                 ApprovalType
+  status               ApprovalStatus @default(pending)
+  requesterId          Int
+  resolverId           Int?
+  resourceAllocationId Int?           @unique
+  comment              String?        @db.Text
+  createdAt            DateTime       @default(now())
+  resolvedAt           DateTime?
+
+  // Relations
+  requester          User                @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  resourceAllocation ResourceAllocation? @relation(fields: [resourceAllocationId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([type])
+  @@index([requesterId])
+}
+
+model AuditLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int?
+  action        String   @db.VarChar(100)
+  entityType    String   @db.VarChar(50)
+  entityId      Int?
+  previousState String?  @db.Text
+  newState      String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Custom Index (Requirement 15)
+  @@index([createdAt, userId], name: "idx_audit_date_user")
+  @@index([entityType])
+  @@index([action])
+}
