@@ -17,7 +17,7 @@ router.delete('/:id', requireRole(['admin', 'operator']), teamsController.delete
 // Update — admin, operator, AND field_officer (for location updates + mark complete)
 router.put('/:id', requireRole(['admin', 'operator', 'field_officer']), teamsController.updateTeam);
 
-// Assign — admin and operator only
-router.post('/:id/assign', requireRole(['admin', 'operator']), teamsController.assignTeam);
+// Assign — admin, operator, AND field_officer (rescue portal users)
+router.post('/:id/assign', requireRole(['admin', 'operator', 'field_officer']), teamsController.assignTeam);
 
 module.exports = router;

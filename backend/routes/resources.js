@@ -21,6 +21,7 @@ router.get('/', resourcesController.getResources);
 router.get('/:id', resourcesController.getResourceById);
 router.put('/:id', requireRole(['admin', 'warehouse_manager']), resourcesController.updateResource);
 router.delete('/:id', requireRole(['admin', 'warehouse_manager']), resourcesController.deleteResource);
-router.post('/:id/allocate', requireRole(['admin', 'warehouse_manager']), resourcesController.allocateResource);
+// Allocation request — field_officer and operator can also request (goes to approval workflow)
+router.post('/:id/allocate', requireRole(['admin', 'warehouse_manager', 'operator', 'field_officer']), resourcesController.allocateResource);
 
 module.exports = router;
