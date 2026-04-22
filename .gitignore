@@ -34,3 +34,8 @@ Thumbs.db
 
 # Docker volumes (not tracked)
 mysql_data/
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
