@@ -14,7 +14,11 @@ export default function DashboardPage() {
   const [toast, setToast] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { 
+    fetchAll(); 
+    const interval = setInterval(fetchAll, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchAll = async () => {
     try {

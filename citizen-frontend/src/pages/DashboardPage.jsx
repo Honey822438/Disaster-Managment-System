@@ -21,7 +21,12 @@ export default function DashboardPage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => { fetchReports(); fetchResources(); }, []);
+  useEffect(() => { 
+    fetchReports(); 
+    fetchResources(); 
+    const interval = setInterval(() => { fetchReports(); fetchResources(); }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchReports = async () => {
     try {

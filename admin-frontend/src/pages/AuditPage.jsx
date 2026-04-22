@@ -55,7 +55,11 @@ export default function AuditPage() {
     }
   }, [page, filters]);
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  useEffect(() => { 
+    fetchLogs(); 
+    const interval = setInterval(fetchLogs, 15000);
+    return () => clearInterval(interval);
+  }, [fetchLogs]);
 
   const handleFilterChange = (key, val) => {
     setFilters(f => ({ ...f, [key]: val }));

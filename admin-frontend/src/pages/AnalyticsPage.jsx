@@ -51,7 +51,11 @@ export default function AnalyticsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { 
+    fetchData(); 
+    const interval = setInterval(fetchData, 15000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   // Transform data for charts
   const incidentsByType = Object.entries(incidents.byType || {}).map(([name, value]) => ({ name, value }));

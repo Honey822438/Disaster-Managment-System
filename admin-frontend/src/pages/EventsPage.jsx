@@ -54,7 +54,11 @@ export default function EventsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
+  useEffect(() => { 
+    fetchEvents(); 
+    const interval = setInterval(fetchEvents, 15000);
+    return () => clearInterval(interval);
+  }, [fetchEvents]);
 
   const openCreate = () => { setForm(emptyForm); setEditTarget(null); setModal('create'); };
   const openEdit = (ev) => {

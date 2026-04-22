@@ -68,7 +68,11 @@ export default function UsersPage() {
     }
   }, []);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => { 
+    fetchUsers(); 
+    const interval = setInterval(fetchUsers, 15000);
+    return () => clearInterval(interval);
+  }, [fetchUsers]);
 
   useEffect(() => {
     if (roleFilter) {
