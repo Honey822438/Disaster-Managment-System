@@ -9,7 +9,7 @@ CREATE TABLE User (
     username    VARCHAR(50)  NOT NULL UNIQUE,
     email       VARCHAR(100) NOT NULL UNIQUE,
     password    VARCHAR(255) NOT NULL,
-    role        VARCHAR(50)  NOT NULL,
+    role        VARCHAR(50)  NOT NULL,  -- admin | operator | field_officer | warehouse_manager | finance_officer | hospital_admin
     createdAt   DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updatedAt   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -193,16 +193,26 @@ CREATE TABLE FinancialTransaction (
 
 CREATE TABLE ApprovalWorkflow (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
-    type                 VARCHAR(50) NOT NULL,
+    type                 VARCHAR(50) NOT NULL,  -- ResourceAllocation | TeamDeployment | FinancialExpense | BudgetRequest
     status               VARCHAR(50) DEFAULT 'pending',
     requesterId          INT         NOT NULL,
     resolverId           INT,
-    resourceAllocationId INT         UNIQUE,
+    -- Generic reference fields (used based on type):
+    resourceAllocationId INT         UNIQUE,    -- for ResourceAllocation approvals
+    teamAssignmentId     INT,                   -- for TeamDeployment approvals
+    expenseId            INT,                   -- for FinancialExpense approvals
+    disasterEventId      INT,                   -- for BudgetRequest approvals
     comment              TEXT,
     createdAt            DATETIME    DEFAULT CURRENT_TIMESTAMP,
     resolvedAt           DATETIME,
     FOREIGN KEY (requesterId)          REFERENCES User(id)               ON DELETE CASCADE,
-    FOREIGN KEY (resourceAllocationId) REFERENCES ResourceAllocation(id) ON DELETE CASCADE
+    FOREIGN KEY (resolverId)           REFERENCES User(id)               ON DELETE SET NULL,
+    FOREIGN KEY (resourceAllocationId) REFERENCES ResourceAllocation(id) ON DELETE CASCADE,
+    INDEX idx_approval_status (status),
+    INDEX idx_approval_type (type),
+    INDEX idx_approval_requester (requesterId),
+    INDEX idx_approval_team (teamAssignmentId),
+    INDEX idx_approval_expense (expenseId)
 );
 
 CREATE TABLE AuditLog (
@@ -214,7 +224,35 @@ CREATE TABLE AuditLog (
     previousState TEXT,
     newState      TEXT,
     createdAt     DATETIME     DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (userId) REFERENCES User(id) ON DELETE SET NULL
+    FOREIGN KEY (userId) REFERENCES User(id) ON DELETE SET NULL,
+    INDEX idx_audit_date_user (createdAt, userId),
+    INDEX idx_audit_entity (entityType, entityId),
+    INDEX idx_audit_action (action)
+);
+
+-- ============================================================
+-- FINANCIAL AUDIT LOG (separate from FinancialTransaction)
+-- Immutable trail of WHO did WHAT to financial records
+-- ============================================================
+
+CREATE TABLE FinancialAuditLog (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    userId          INT,
+    action          VARCHAR(100) NOT NULL,  -- e.g. DONATION_CREATED, EXPENSE_APPROVED, BUDGET_SET
+    entityType      VARCHAR(50)  NOT NULL,  -- Donation | Expense | Budget | FinancialTransaction
+    entityId        INT,
+    amount          DECIMAL(15,2),
+    disasterEventId INT,
+    previousState   TEXT,
+    newState        TEXT,
+    ipAddress       VARCHAR(45),
+    createdAt       DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId)          REFERENCES User(id)          ON DELETE SET NULL,
+    FOREIGN KEY (disasterEventId) REFERENCES DisasterEvent(id) ON DELETE SET NULL,
+    INDEX idx_fin_audit_date_user (createdAt, userId),
+    INDEX idx_fin_audit_entity (entityType, entityId),
+    INDEX idx_fin_audit_action (action),
+    INDEX idx_fin_audit_event (disasterEventId)
 );
 
 -- ============================================================

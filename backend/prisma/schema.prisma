@@ -1,7 +1,8 @@
 // schema.prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl"]
 }
 
 datasource db {
@@ -19,6 +20,7 @@ enum Role {
   field_officer
   warehouse_manager
   finance_officer
+  hospital_admin
 }
 
 enum DisasterType {
@@ -122,6 +124,7 @@ model User {
   expensesApproved      Expense[]               @relation("ExpenseApprover")
   expensesRecorded      Expense[]               @relation("ExpenseRecorder")
   financialTransactions FinancialTransaction[]  @relation("FinancialTransactionPerformer")
+  financialAuditLogs    FinancialAuditLog[]     @relation("FinancialAuditLogUser")
 
   @@index([email])
   @@index([role])
@@ -146,6 +149,7 @@ model DisasterEvent {
   expenses            Expense[]
   budget              Budget?
   financialTxs        FinancialTransaction[]
+  financialAuditLogs  FinancialAuditLog[]
 
   @@index([type])
   @@index([startDate])
@@ -350,7 +354,15 @@ model ApprovalWorkflow {
   status               ApprovalStatus @default(pending)
   requesterId          Int
   resolverId           Int?
+  // Generic reference fields — used based on type:
+  // ResourceAllocation → resourceAllocationId
+  // TeamDeployment     → teamAssignmentId
+  // FinancialExpense   → expenseId
+  // BudgetRequest      → disasterEventId
   resourceAllocationId Int?           @unique
+  teamAssignmentId     Int?
+  expenseId            Int?
+  disasterEventId      Int?
   comment              String?        @db.Text
   createdAt            DateTime       @default(now())
   resolvedAt           DateTime?
@@ -362,6 +374,8 @@ model ApprovalWorkflow {
   @@index([status])
   @@index([type])
   @@index([requesterId])
+  @@index([teamAssignmentId])
+  @@index([expenseId])
 }
 
 model AuditLog {
@@ -417,4 +431,32 @@ model FinancialTransaction {
   @@index([createdAt], name: "idx_fin_tx_date")
   @@index([transactionType], name: "idx_fin_tx_type")
   @@index([disasterEventId], name: "idx_fin_tx_event")
+}
+
+// ============================================================
+// FINANCIAL AUDIT LOG — separate from FinancialTransaction
+// Records WHO did WHAT to financial records (immutable trail)
+// ============================================================
+
+model FinancialAuditLog {
+  id              Int      @id @default(autoincrement())
+  userId          Int?
+  action          String   @db.VarChar(100)  // e.g. DONATION_CREATED, EXPENSE_APPROVED, BUDGET_SET
+  entityType      String   @db.VarChar(50)   // Donation | Expense | Budget | FinancialTransaction
+  entityId        Int?
+  amount          Decimal? @db.Decimal(15, 2)
+  disasterEventId Int?
+  previousState   String?  @db.Text
+  newState        String?  @db.Text
+  ipAddress       String?  @db.VarChar(45)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  user          User?          @relation("FinancialAuditLogUser", fields: [userId], references: [id], onDelete: SetNull)
+  disasterEvent DisasterEvent? @relation(fields: [disasterEventId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt, userId], name: "idx_fin_audit_date_user")
+  @@index([entityType, entityId], name: "idx_fin_audit_entity")
+  @@index([action], name: "idx_fin_audit_action")
+  @@index([disasterEventId], name: "idx_fin_audit_event")
 }

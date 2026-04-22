@@ -12,11 +12,12 @@ COPY prisma ./prisma/
 # Install ALL dependencies (including mysql2 for trigger script)
 RUN npm install
 
-# Generate Prisma Client for Linux
-RUN npx prisma generate
-
 # Copy rest of application code
 COPY . .
+
+# Generate Prisma Client AFTER all files are in place
+# binaryTargets in schema.prisma covers debian-openssl-3.0.x and linux-musl
+RUN npx prisma generate
 
 # Backend listens on 5000 inside Docker
 # docker-compose maps host:5001 → container:5000

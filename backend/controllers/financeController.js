@@ -112,9 +112,19 @@ async function setBudget(req, res) {
   }
 }
 
+async function getFinancialAuditLog(req, res) {
+  try {
+    const { logs, total } = await financeService.getFinancialAuditLog(req.query);
+    const { page = 1, limit = 20 } = req.query;
+    res.json(paginate(logs, total, page, limit));
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch financial audit log', details: error.message });
+  }
+}
+
 module.exports = {
   createDonation, getDonations,
   createExpense, approveExpense, getExpenses,
   getFinancialSummary, getFinancialTransactions,
-  getBudget, setBudget,
+  getBudget, setBudget, getFinancialAuditLog,
 };

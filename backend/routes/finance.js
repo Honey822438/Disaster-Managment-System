@@ -23,4 +23,7 @@ router.get('/transactions', financeController.getFinancialTransactions);
 router.get('/budget/:eventId', financeController.getBudget);
 router.post('/budget/:eventId', requireRole(['admin', 'finance_officer']), financeController.setBudget);
 
+// Financial Audit Log — admin and finance_officer only
+router.get('/audit-log', requireRole(['admin', 'finance_officer']), financeController.getFinancialAuditLog);
+
 module.exports = router;

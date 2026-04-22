@@ -4,7 +4,7 @@ const { calculateSkip } = require('../utils/pagination');
 const prisma = new PrismaClient();
 
 /**
- * Creates a donation with ACID transaction + financial transaction log
+ * Creates a donation with ACID transaction + financial transaction log + financial audit log
  */
 async function createDonation(data, userId) {
   const result = await prisma.$transaction(async (tx) => {
@@ -34,7 +34,20 @@ async function createDonation(data, userId) {
       }
     });
 
-    // 3. Update or create budget record for this event
+    // 3. Log to FinancialAuditLog (immutable audit trail)
+    await tx.financialAuditLog.create({
+      data: {
+        userId: userId || null,
+        action: 'DONATION_CREATED',
+        entityType: 'Donation',
+        entityId: donation.id,
+        amount: parseFloat(data.amount),
+        disasterEventId: parseInt(data.disasterEventId),
+        newState: JSON.stringify({ donorName: data.donorName, amount: data.amount, donorType: data.donorType }),
+      }
+    });
+
+    // 4. Update or create budget record for this event
     await tx.budget.upsert({
       where: { disasterEventId: parseInt(data.disasterEventId) },
       update: { allocatedAmount: { increment: parseFloat(data.amount) } },
@@ -164,6 +177,20 @@ async function approveExpense(expenseId, approverId) {
       where: { id: parseInt(expenseId) },
       data: { status: 'approved', approvedById: approverId },
       include: { disasterEvent: true }
+    });
+
+    // Log approval to FinancialAuditLog
+    await tx.financialAuditLog.create({
+      data: {
+        userId: approverId,
+        action: 'EXPENSE_APPROVED',
+        entityType: 'Expense',
+        entityId: expense.id,
+        amount: parseFloat(expense.amount),
+        disasterEventId: expense.disasterEventId,
+        previousState: JSON.stringify({ status: 'pending' }),
+        newState: JSON.stringify({ status: 'approved', approvedById: approverId }),
+      }
     });
 
     // Log approval
@@ -355,6 +382,37 @@ async function setBudget(eventId, totalBudget, userId) {
   return result;
 }
 
+/**
+ * Gets financial audit log entries
+ */
+async function getFinancialAuditLog(filters = {}) {
+  const { page = 1, limit = 20, entityType, action, eventId, startDate, endDate } = filters;
+
+  const where = {};
+  if (entityType) where.entityType = entityType;
+  if (action) where.action = action;
+  if (eventId) where.disasterEventId = parseInt(eventId);
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) where.createdAt.gte = new Date(startDate);
+    if (endDate) where.createdAt.lte = new Date(endDate);
+  }
+
+  const total = await prisma.financialAuditLog.count({ where });
+  const logs = await prisma.financialAuditLog.findMany({
+    where,
+    skip: calculateSkip(page, limit),
+    take: parseInt(limit),
+    include: {
+      user: { select: { id: true, username: true } },
+      disasterEvent: { select: { id: true, name: true } }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return { logs, total };
+}
+
 module.exports = {
   createDonation,
   getDonations,
@@ -365,4 +423,5 @@ module.exports = {
   getFinancialTransactions,
   getBudget,
   setBudget,
+  getFinancialAuditLog,
 };
