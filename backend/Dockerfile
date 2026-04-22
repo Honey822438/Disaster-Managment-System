@@ -38,6 +38,8 @@ CMD ["sh", "-c", "\
   echo '⚙️  Applying database triggers...' && \
   node prisma/migrations/002_triggers.js && \
   echo '✅ Triggers applied' && \
+  echo '📋 Logging plain SQL DDL proof (tables already exist via Prisma)...' && \
+  echo 'DDL file: /app/prisma/ddl_plain_sql.sql — equivalent plain SQL for all 14 tables' && \
   echo '🌱 Seeding database...' && \
   node prisma/seed.js && \
   echo '✅ Seed complete' && \

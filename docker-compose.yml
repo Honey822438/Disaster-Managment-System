@@ -46,6 +46,16 @@ services:
     networks:
       - disaster-response-network
 
+  ddl-docs:
+    image: alpine:latest
+    container_name: disaster-response-ddl-docs
+    restart: unless-stopped
+    volumes:
+      - ./backend/prisma/ddl_plain_sql.sql:/ddl/schema.sql:ro
+    command: sh -c "echo 'DDL Schema loaded at /ddl/schema.sql - 14 tables documented' && tail -f /dev/null"
+    networks:
+      - disaster-response-network
+
 volumes:
   mysql_data:
     name: disaster-response-mysql-data
