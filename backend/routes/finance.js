@@ -4,18 +4,23 @@ const financeController = require('../controllers/financeController');
 const { authenticateToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 
-// All routes require authentication
 router.use(authenticateToken);
 
-// Donation routes
+// Donations — finance_officer and admin can create; all authenticated can read
 router.post('/donations', requireRole(['admin', 'finance_officer']), financeController.createDonation);
 router.get('/donations', financeController.getDonations);
 
-// Expense routes
+// Expenses — finance_officer creates; admin/finance_officer approves
 router.post('/expenses', requireRole(['admin', 'finance_officer']), financeController.createExpense);
 router.get('/expenses', financeController.getExpenses);
+router.post('/expenses/:id/approve', requireRole(['admin', 'finance_officer']), financeController.approveExpense);
 
-// Summary route
+// Financial summary and transactions
 router.get('/summary', financeController.getFinancialSummary);
+router.get('/transactions', financeController.getFinancialTransactions);
+
+// Budget management — admin and finance_officer
+router.get('/budget/:eventId', financeController.getBudget);
+router.post('/budget/:eventId', requireRole(['admin', 'finance_officer']), financeController.setBudget);
 
 module.exports = router;

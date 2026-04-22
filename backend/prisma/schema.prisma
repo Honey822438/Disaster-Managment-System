@@ -85,6 +85,7 @@ enum ExpenseCategory {
   Equipment
   Personnel
   Infrastructure
+  Procurement
   Other
 }
 
@@ -92,6 +93,7 @@ enum ApprovalType {
   ResourceAllocation
   BudgetRequest
   TeamDeployment
+  FinancialExpense
 }
 
 enum ApprovalStatus {
@@ -114,8 +116,12 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  auditLogs         AuditLog[]
-  approvalWorkflows ApprovalWorkflow[]
+  auditLogs             AuditLog[]
+  approvalWorkflows     ApprovalWorkflow[]
+  donationsRecorded     Donation[]              @relation("DonationRecorder")
+  expensesApproved      Expense[]               @relation("ExpenseApprover")
+  expensesRecorded      Expense[]               @relation("ExpenseRecorder")
+  financialTransactions FinancialTransaction[]  @relation("FinancialTransactionPerformer")
 
   @@index([email])
   @@index([role])
@@ -129,6 +135,7 @@ model DisasterEvent {
   startDate   DateTime
   endDate     DateTime?
   description String?      @db.Text
+  totalBudget Decimal?     @db.Decimal(15, 2)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -137,6 +144,8 @@ model DisasterEvent {
   resourceAllocations ResourceAllocation[]
   donations           Donation[]
   expenses            Expense[]
+  budget              Budget?
+  financialTxs        FinancialTransaction[]
 
   @@index([type])
   @@index([startDate])
@@ -296,13 +305,16 @@ model Donation {
   id              Int       @id @default(autoincrement())
   donorName       String    @db.VarChar(100)
   organization    String?   @db.VarChar(100)
+  donorType       String    @db.VarChar(50) @default("Individual")
   amount          Decimal   @db.Decimal(15, 2)
   disasterEventId Int
   donatedAt       DateTime  @default(now())
   createdAt       DateTime  @default(now())
+  recordedById    Int?
 
   // Relations
   disasterEvent DisasterEvent @relation(fields: [disasterEventId], references: [id], onDelete: Cascade)
+  recordedBy    User?         @relation("DonationRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
 
   // Custom Index (Requirement 15)
   @@index([donatedAt], name: "idx_donations_date")
@@ -315,14 +327,21 @@ model Expense {
   amount          Decimal         @db.Decimal(15, 2)
   description     String          @db.Text
   disasterEventId Int
+  status          String          @db.VarChar(50) @default("pending")
+  approvedById    Int?
+  recordedById    Int?
+  receiptRef      String?         @db.VarChar(200)
   createdAt       DateTime        @default(now())
 
   // Relations
   disasterEvent DisasterEvent @relation(fields: [disasterEventId], references: [id], onDelete: Cascade)
+  approvedBy    User?         @relation("ExpenseApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  recordedBy    User?         @relation("ExpenseRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
 
   // Custom Index (Requirement 15)
   @@index([category, createdAt], name: "idx_expenses_category_date")
   @@index([disasterEventId])
+  @@index([status])
 }
 
 model ApprovalWorkflow {
@@ -362,4 +381,40 @@ model AuditLog {
   @@index([createdAt, userId], name: "idx_audit_date_user")
   @@index([entityType])
   @@index([action])
+}
+
+// ============================================================
+// FINANCE MODULE MODELS
+// ============================================================
+
+model Budget {
+  id              Int           @id @default(autoincrement())
+  disasterEventId Int           @unique
+  totalBudget     Decimal       @db.Decimal(15, 2) @default(0)
+  allocatedAmount Decimal       @db.Decimal(15, 2) @default(0)
+  spentAmount     Decimal       @db.Decimal(15, 2) @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  disasterEvent DisasterEvent @relation(fields: [disasterEventId], references: [id], onDelete: Cascade)
+
+  @@index([disasterEventId])
+}
+
+model FinancialTransaction {
+  id              Int      @id @default(autoincrement())
+  transactionType String   @db.VarChar(50)
+  referenceId     Int
+  amount          Decimal  @db.Decimal(15, 2)
+  disasterEventId Int?
+  performedById   Int?
+  description     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  disasterEvent DisasterEvent? @relation(fields: [disasterEventId], references: [id], onDelete: SetNull)
+  performedBy   User?          @relation("FinancialTransactionPerformer", fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt], name: "idx_fin_tx_date")
+  @@index([transactionType], name: "idx_fin_tx_type")
+  @@index([disasterEventId], name: "idx_fin_tx_event")
 }
