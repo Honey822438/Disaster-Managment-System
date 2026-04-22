@@ -54,7 +54,11 @@ export default function HospitalsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchHospitals(); }, [fetchHospitals]);
+  useEffect(() => { 
+    fetchHospitals(); 
+    const interval = setInterval(fetchHospitals, 15000);
+    return () => clearInterval(interval);
+  }, [fetchHospitals]);
 
   const openViewPatients = async (hospital) => {
     setSelectedHospital(hospital);

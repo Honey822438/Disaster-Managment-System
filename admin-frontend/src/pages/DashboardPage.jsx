@@ -37,6 +37,8 @@ export default function DashboardPage() {
       }
     };
     fetchAll();
+    const interval = setInterval(fetchAll, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const metricCards = metrics ? [

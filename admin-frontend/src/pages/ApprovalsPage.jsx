@@ -56,7 +56,11 @@ export default function ApprovalsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchApprovals(); }, [fetchApprovals]);
+  useEffect(() => { 
+    fetchApprovals(); 
+    const interval = setInterval(fetchApprovals, 15000);
+    return () => clearInterval(interval);
+  }, [fetchApprovals]);
 
   const openConfirm = (approval, decision) => {
     setConfirmModal({ approval, decision });
@@ -85,9 +89,12 @@ export default function ApprovalsPage() {
     <div className="space-y-6">
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div>
-        <h1 className="text-2xl font-bold text-white">Approvals</h1>
-        <p className="text-gray-400 text-sm">Review and resolve pending approval requests</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Approvals</h1>
+          <p className="text-gray-400 text-sm">Review and resolve pending approval requests</p>
+        </div>
+        <button onClick={fetchApprovals} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm transition-colors">🔄 Refresh</button>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">

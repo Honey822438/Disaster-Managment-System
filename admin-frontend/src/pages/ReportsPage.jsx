@@ -63,7 +63,11 @@ export default function ReportsPage() {
     }
   }, [filters]);
 
-  useEffect(() => { fetchReports(); }, [fetchReports]);
+  useEffect(() => { 
+    fetchReports(); 
+    const interval = setInterval(fetchReports, 15000);
+    return () => clearInterval(interval);
+  }, [fetchReports]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -116,10 +120,13 @@ export default function ReportsPage() {
           <h1 className="text-2xl font-bold text-white">Emergency Reports</h1>
           <p className="text-gray-400 text-sm">Manage disaster reports and incidents</p>
         </div>
-        <button onClick={() => setShowCreate(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          + Create Report
-        </button>
+        <div className="flex gap-2">
+          <button onClick={fetchReports} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm transition-colors">🔄 Refresh</button>
+          <button onClick={() => setShowCreate(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            + Create Report
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

@@ -61,7 +61,12 @@ export default function TeamsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchTeams(); }, [fetchTeams]);
+  useEffect(() => { 
+    fetchTeams(); 
+    // Auto-refresh every 15 seconds to stay in sync with database
+    const interval = setInterval(fetchTeams, 15000);
+    return () => clearInterval(interval);
+  }, [fetchTeams]);
 
   const openAssign = async (team) => {
     setAssignTarget(team);
@@ -138,10 +143,13 @@ export default function TeamsPage() {
           <h1 className="text-2xl font-bold text-white">Rescue Teams</h1>
           <p className="text-gray-400 text-sm">Manage and deploy rescue teams</p>
         </div>
-        <button onClick={() => { setForm(emptyForm); setModal('add'); }}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          + Add Team
-        </button>
+        <div className="flex gap-2">
+          <button onClick={fetchTeams} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm transition-colors">🔄 Refresh</button>
+          <button onClick={() => { setForm(emptyForm); setModal('add'); }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            + Add Team
+          </button>
+        </div>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
