@@ -42,16 +42,34 @@ const DashboardPage = () => {
 
   const fetchAll = async () => {
     try {
-      const [metricsRes, activityRes, incidentRes, financeRes] = await Promise.all([
+      const [metricsRes, activityRes, incidentRes, financeRes] = await Promise.allSettled([
         apiClient.get('/analytics/dashboard'),
         apiClient.get('/audit?limit=8'),
         apiClient.get('/analytics/incidents'),
         apiClient.get('/analytics/finance'),
       ]);
-      setMetrics(metricsRes.data);
-      setActivity(activityRes.data.data || activityRes.data || []);
-      setIncidentData(incidentRes.data);
-      setFinanceData(financeRes.data);
+      
+      if (metricsRes.status === 'fulfilled') {
+        setMetrics(metricsRes.value.data);
+      }
+      
+      if (activityRes.status === 'fulfilled') {
+        setActivity(activityRes.value.data.data || activityRes.value.data || []);
+      }
+      
+      if (incidentRes.status === 'fulfilled') {
+        setIncidentData(incidentRes.value.data);
+      }
+      
+      if (financeRes.status === 'fulfilled') {
+        setFinanceData(financeRes.value.data);
+      }
+      
+      // Only show error if ALL calls failed
+      if (metricsRes.status === 'rejected' && activityRes.status === 'rejected' && 
+          incidentRes.status === 'rejected' && financeRes.status === 'rejected') {
+        setError('Failed to load dashboard data. Please try logging in again.');
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load dashboard data');
     } finally {

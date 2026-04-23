@@ -22,14 +22,34 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [dashRes, auditRes, incRes] = await Promise.all([
+        const [dashRes, auditRes, incRes] = await Promise.allSettled([
           api.get('/analytics/dashboard'),
           api.get('/audit?limit=8'),
           api.get('/analytics/incidents'),
         ]);
-        setMetrics(dashRes.data);
-        setAuditLogs(auditRes.data?.data || auditRes.data || []);
-        setIncidents(incRes.data || { byType: {}, bySeverity: {} });
+        
+        if (dashRes.status === 'fulfilled') {
+          setMetrics(dashRes.value.data);
+        } else {
+          console.error('Dashboard metrics failed:', dashRes.reason);
+        }
+        
+        if (auditRes.status === 'fulfilled') {
+          setAuditLogs(auditRes.value.data?.data || auditRes.value.data || []);
+        } else {
+          console.error('Audit logs failed:', auditRes.reason);
+        }
+        
+        if (incRes.status === 'fulfilled') {
+          setIncidents(incRes.value.data || { byType: {}, bySeverity: {} });
+        } else {
+          console.error('Incidents failed:', incRes.reason);
+        }
+        
+        // Only show error if ALL calls failed
+        if (dashRes.status === 'rejected' && auditRes.status === 'rejected' && incRes.status === 'rejected') {
+          showToast('Failed to load dashboard data. Please try logging in again.');
+        }
       } catch (err) {
         showToast(err.response?.data?.message || 'Failed to load dashboard data');
       } finally {
