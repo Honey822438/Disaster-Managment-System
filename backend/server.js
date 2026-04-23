@@ -26,6 +26,12 @@ app.use(cors({
     'http://localhost:3011',  // hospital-frontend
     'http://localhost:3012',  // citizen-frontend
     'http://localhost:3013',  // rescue-frontend
+    'http://localhost:3014',  // finance-frontend
+    'http://127.0.0.1:3010',
+    'http://127.0.0.1:3011',
+    'http://127.0.0.1:3012',
+    'http://127.0.0.1:3013',
+    'http://127.0.0.1:3014',
     'http://frontend:3000',
   ],
   credentials: true,

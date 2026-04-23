@@ -1,4 +1,12 @@
 {
+  "scripts": {
+    "start:admin":    "cd admin-frontend && npm run dev",
+    "start:hospital": "cd hospital-frontend && npm run dev",
+    "start:citizen":  "cd citizen-frontend && npm run dev",
+    "start:rescue":   "cd rescue-frontend && npm run dev",
+    "start:finance":  "cd finance-frontend && npm run dev",
+    "start:all": "start cmd /k \"cd admin-frontend && npm run dev\" && start cmd /k \"cd hospital-frontend && npm run dev\" && start cmd /k \"cd citizen-frontend && npm run dev\" && start cmd /k \"cd rescue-frontend && npm run dev\" && start cmd /k \"cd finance-frontend && npm run dev\""
+  },
   "dependencies": {
     "express": "^5.2.1"
   }
