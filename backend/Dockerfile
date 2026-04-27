@@ -9,8 +9,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install ALL dependencies (including mysql2 for trigger script)
-RUN npm install
+# Install ALL dependencies with retry on network failure
+RUN npm install --fetch-retry-mintimeout 20000 --fetch-retry-maxtimeout 120000 --fetch-retries 5
 
 # Copy rest of application code
 COPY . .
@@ -24,12 +24,16 @@ RUN npx prisma generate
 EXPOSE 5000
 
 # Startup sequence:
-# 1. Push schema to MySQL (creates all 14 tables)
-# 2. Apply views SQL (5 views)
-# 3. Apply triggers via mysql2 script (5 triggers)
-# 4. Seed database with test data
-# 5. Start Express API server
+# 1. Regenerate Prisma Client (ensures fresh client on every start)
+# 2. Push schema to MySQL (creates all 14 tables)
+# 3. Apply views SQL (5 views)
+# 4. Apply triggers via mysql2 script (5 triggers)
+# 5. Seed database with test data (skips if data exists)
+# 6. Start Express API server
 CMD ["sh", "-c", "\
+  echo '🔄 Regenerating Prisma Client...' && \
+  npx prisma generate && \
+  echo '✅ Prisma Client ready' && \
   echo '⏳ Pushing Prisma schema to database...' && \
   npx prisma db push --accept-data-loss && \
   echo '✅ Schema pushed' && \
@@ -39,8 +43,6 @@ CMD ["sh", "-c", "\
   echo '⚙️  Applying database triggers...' && \
   node prisma/migrations/002_triggers.js && \
   echo '✅ Triggers applied' && \
-  echo '📋 Logging plain SQL DDL proof (tables already exist via Prisma)...' && \
-  echo 'DDL file: /app/prisma/ddl_plain_sql.sql — equivalent plain SQL for all 14 tables' && \
   echo '🌱 Seeding database...' && \
   node prisma/seed.js && \
   echo '✅ Seed complete' && \
