@@ -38,6 +38,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: ${NODE_ENV}
       PORT: 5000
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       # Force Prisma to regenerate client on every container start
       PRISMA_GENERATE_SKIP_AUTOINSTALL: "false"
     ports:
