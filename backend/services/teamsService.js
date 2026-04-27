@@ -81,18 +81,19 @@ async function getTeamById(id) {
 }
 
 /**
- * Updates a rescue team
+ * Updates a rescue team — only updates fields that are provided
  */
 async function updateTeam(id, data) {
+  const updateData = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.type !== undefined) updateData.type = data.type;
+  if (data.location !== undefined) updateData.location = data.location;
+  if (data.memberCount !== undefined) updateData.memberCount = data.memberCount;
+  if (data.status !== undefined) updateData.status = data.status;
+
   const team = await prisma.rescueTeam.update({
     where: { id: parseInt(id) },
-    data: {
-      name: data.name,
-      type: data.type,
-      location: data.location,
-      memberCount: data.memberCount,
-      status: data.status
-    }
+    data: updateData
   });
 
   return team;
@@ -110,6 +111,7 @@ async function deleteTeam(id) {
 /**
  * Assigns a team to an emergency report
  * Creates TeamAssignment and triggers status update via database trigger
+ * Also updates the emergency report status to 'Assigned'
  */
 async function assignTeam(teamId, emergencyReportId, notes = null) {
   // Verify team exists and is available
@@ -130,21 +132,34 @@ async function assignTeam(teamId, emergencyReportId, notes = null) {
     throw new Error('Emergency report not found');
   }
 
-  // Create team assignment
-  // The database trigger will automatically update team status to 'Assigned'
-  const assignment = await prisma.teamAssignment.create({
-    data: {
-      rescueTeamId: parseInt(teamId),
-      emergencyReportId: parseInt(emergencyReportId),
-      notes
-    },
-    include: {
-      rescueTeam: true,
-      emergencyReport: true
+  // Create team assignment + update report status atomically
+  const result = await prisma.$transaction(async (tx) => {
+    // Create team assignment
+    // The database trigger will automatically update team status to 'Assigned'
+    const assignment = await tx.teamAssignment.create({
+      data: {
+        rescueTeamId: parseInt(teamId),
+        emergencyReportId: parseInt(emergencyReportId),
+        notes
+      },
+      include: {
+        rescueTeam: true,
+        emergencyReport: true
+      }
+    });
+
+    // Update emergency report status to 'Assigned' if it's still Pending
+    if (report.status === 'Pending') {
+      await tx.emergencyReport.update({
+        where: { id: parseInt(emergencyReportId) },
+        data: { status: 'Assigned' }
+      });
     }
+
+    return assignment;
   });
 
-  return assignment;
+  return result;
 }
 
 module.exports = {
