@@ -6,9 +6,8 @@ const { requireRole } = require('../middleware/rbac');
 
 router.use(authenticateToken);
 
-// Full audit log — admin only
-// But allow any authenticated user to fetch a small recent activity feed (limit=8)
-// The controller handles this: if not admin and limit > 20, cap it
+// Full audit log — admin only for full access
+// Non-admins get a capped activity feed (max 20 entries) for dashboard widgets
 router.get('/', auditController.getAuditLogs);
 
 module.exports = router;

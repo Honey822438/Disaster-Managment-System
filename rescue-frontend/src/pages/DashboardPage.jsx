@@ -154,6 +154,7 @@ export default function DashboardPage() {
     { id: 'active', label: '⚡ Active Missions', count: assignedTeams.length },
     { id: 'teams', label: '🚒 All Teams', count: teams.length },
     { id: 'resources', label: '📦 Resources', count: resources.length },
+    { id: 'history', label: '📜 History Log', count: 0 },
   ];
 
   return (
@@ -445,6 +446,125 @@ export default function DashboardPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+            {/* TAB: History Log */}
+            {tab === 'history' && (
+              <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white">📜 History Log</h2>
+                  <button onClick={fetchAll} className="text-xs text-gray-400 hover:text-white bg-gray-800 px-3 py-1.5 rounded-lg">🔄 Refresh</button>
+                </div>
+
+                {/* Team Assignment History */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-4">🚒 Team Assignment History</h3>
+                  {teams.length === 0 ? (
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-500">No teams found</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {teams.map(team => {
+                        const allAssignments = team.teamAssignments || [];
+                        return (
+                          <div key={team.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800 bg-gray-800/30">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl">🚒</span>
+                                <div>
+                                  <p className="text-white font-bold">{team.name}</p>
+                                  <p className="text-gray-500 text-xs">{team.type} · {team.memberCount} members · 📍 {team.location}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${TEAM_STATUS[team.status] || 'bg-gray-700 text-gray-300 border-gray-600'}`}>{team.status}</span>
+                                <span className="text-gray-500 text-xs">{allAssignments.length} mission{allAssignments.length !== 1 ? 's' : ''}</span>
+                              </div>
+                            </div>
+                            {allAssignments.length === 0 ? (
+                              <div className="px-5 py-4 text-gray-600 text-sm">No assignments yet</div>
+                            ) : (
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-800/20">
+                                  <tr>
+                                    {['Report #', 'Location', 'Type', 'Severity', 'Assigned At', 'Completed At', 'Status'].map(h => (
+                                      <th key={h} className="text-left text-gray-500 px-4 py-2 text-xs font-medium">{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {allAssignments.map(a => (
+                                    <tr key={a.id} className="border-t border-gray-800/50 hover:bg-gray-800/20">
+                                      <td className="px-4 py-2.5 text-orange-400 font-mono font-bold text-xs">#{a.emergencyReport?.id || a.emergencyReportId}</td>
+                                      <td className="px-4 py-2.5 text-white text-xs">{a.emergencyReport?.location || '-'}</td>
+                                      <td className="px-4 py-2.5 text-gray-300 text-xs">{a.emergencyReport?.disasterType || '-'}</td>
+                                      <td className={`px-4 py-2.5 text-xs font-semibold ${SEV_COLOR[a.emergencyReport?.severity] || 'text-gray-400'}`}>{a.emergencyReport?.severity || '-'}</td>
+                                      <td className="px-4 py-2.5 text-gray-400 text-xs">{new Date(a.assignedAt).toLocaleString()}</td>
+                                      <td className="px-4 py-2.5 text-gray-400 text-xs">{a.completedAt ? new Date(a.completedAt).toLocaleString() : <span className="text-orange-400">In Progress</span>}</td>
+                                      <td className="px-4 py-2.5">
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                          ['Resolved','Closed'].includes(a.status) ? 'bg-green-500/20 text-green-400' :
+                                          a.status === 'Assigned' ? 'bg-orange-500/20 text-orange-400' :
+                                          'bg-blue-500/20 text-blue-400'
+                                        }`}>{a.status}</span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Resource Dispatch & Consumption Log */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-4">📦 Resource Dispatch & Consumption Log</h3>
+                  <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-800/50">
+                        <tr>
+                          {['Resource', 'Type', 'Qty Requested', 'Unit', 'Disaster Event', 'Requested By', 'Status', 'Date'].map(h => (
+                            <th key={h} className="text-left text-gray-500 px-4 py-3 text-xs font-medium uppercase">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resources.length === 0 ? (
+                          <tr><td colSpan={8} className="text-center text-gray-500 py-8">No resource data</td></tr>
+                        ) : resources.flatMap(r =>
+                            (r.resourceAllocations || []).map(alloc => ({ ...alloc, resource: r }))
+                          ).length === 0 ? (
+                          <tr><td colSpan={8} className="text-center text-gray-500 py-8">No dispatch/allocation records yet</td></tr>
+                        ) : (
+                          resources.flatMap(r =>
+                            (r.resourceAllocations || []).map(alloc => (
+                              <tr key={alloc.id} className="border-t border-gray-800 hover:bg-gray-800/30">
+                                <td className="px-4 py-3 text-white font-medium">{r.name}</td>
+                                <td className="px-4 py-3 text-gray-300">{r.resourceType}</td>
+                                <td className={`px-4 py-3 font-bold ${alloc.status === 'approved' ? 'text-red-400' : 'text-yellow-400'}`}>{alloc.quantity}</td>
+                                <td className="px-4 py-3 text-gray-400">{r.unit}</td>
+                                <td className="px-4 py-3 text-gray-300">{alloc.disasterEvent?.name || '-'}</td>
+                                <td className="px-4 py-3 text-gray-400 text-xs">{alloc.requestedBy || '-'}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    alloc.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                                    alloc.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                    'bg-yellow-500/20 text-yellow-400'
+                                  }`}>{alloc.status === 'approved' ? '✅ Dispatched' : alloc.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}</span>
+                                </td>
+                                <td className="px-4 py-3 text-gray-500 text-xs">{new Date(alloc.createdAt).toLocaleDateString()}</td>
+                              </tr>
+                            ))
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-gray-600 text-xs mt-2 px-1">✅ Dispatched = approved and deducted from warehouse · ⏳ Pending = awaiting approval</p>
                 </div>
               </div>
             )}

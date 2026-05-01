@@ -120,8 +120,22 @@ export default function ApprovalsPage() {
                     {a.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-300">{a.resource?.name || a.resourceId || '-'}</td>
-                <td className="px-4 py-3 text-gray-300">{a.quantity ?? '-'}</td>
+                <td className="px-4 py-3">
+                  <div className="text-white font-medium text-sm">{a.resourceAllocation?.resource?.name || '-'}</div>
+                  {a.resourceAllocation?.resource?.resourceType && (
+                    <div className="text-gray-500 text-xs">{a.resourceAllocation.resource.resourceType}</div>
+                  )}
+                  {a.resourceAllocation?.disasterEvent?.name && (
+                    <div className="text-blue-400 text-xs mt-0.5">📍 {a.resourceAllocation.disasterEvent.name}</div>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {a.resourceAllocation?.quantity ? (
+                    <span className="text-emerald-400 font-bold">
+                      {a.resourceAllocation.quantity} {a.resourceAllocation?.resource?.unit || ''}
+                    </span>
+                  ) : '-'}
+                </td>
                 <td className="px-4 py-3 text-gray-300">{a.requestedBy || a.requester?.username || '-'}</td>
                 <td className="px-4 py-3 text-gray-400">{a.createdAt ? new Date(a.createdAt).toLocaleString() : '-'}</td>
                 <td className="px-4 py-3">

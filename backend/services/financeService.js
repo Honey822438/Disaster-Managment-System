@@ -413,6 +413,75 @@ async function getFinancialAuditLog(filters = {}) {
   return { logs, total };
 }
 
+/**
+ * Purchase resources — records a Procurement expense AND increases warehouse stock atomically
+ * Only finance_officer and admin can do this
+ */
+async function purchaseResource(data, userId) {
+  const { resourceId, quantity, unitCost, disasterEventId, supplierName, receiptRef } = data;
+
+  // Verify resource exists
+  const resource = await prisma.resource.findUnique({
+    where: { id: parseInt(resourceId) },
+    include: { warehouse: true }
+  });
+  if (!resource) throw new Error('Resource not found');
+
+  const totalAmount = parseFloat(unitCost) * parseInt(quantity);
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Increase resource stock
+    const updatedResource = await tx.resource.update({
+      where: { id: parseInt(resourceId) },
+      data: { quantity: { increment: parseInt(quantity) } },
+      include: { warehouse: true }
+    });
+
+    // 2. Record as approved Procurement expense
+    const expense = await tx.expense.create({
+      data: {
+        category: 'Procurement',
+        amount: totalAmount,
+        description: `Purchased ${quantity} ${resource.unit} of ${resource.name}${supplierName ? ` from ${supplierName}` : ''}`,
+        disasterEventId: parseInt(disasterEventId),
+        status: 'approved',
+        approvedById: userId,
+        recordedById: userId,
+        receiptRef: receiptRef || null,
+      }
+    });
+
+    // 3. Log to FinancialTransaction
+    await tx.financialTransaction.create({
+      data: {
+        transactionType: 'PROCUREMENT',
+        referenceId: expense.id,
+        amount: totalAmount,
+        disasterEventId: parseInt(disasterEventId),
+        performedById: userId,
+        description: `Procurement: ${quantity} ${resource.unit} of ${resource.name} @ ${unitCost} each`,
+      }
+    });
+
+    // 4. Log to FinancialAuditLog
+    await tx.financialAuditLog.create({
+      data: {
+        userId,
+        action: 'PROCUREMENT_CREATED',
+        entityType: 'Expense',
+        entityId: expense.id,
+        amount: totalAmount,
+        disasterEventId: parseInt(disasterEventId),
+        newState: JSON.stringify({ resourceId, quantity, unitCost, supplierName }),
+      }
+    });
+
+    return { expense, updatedResource, totalAmount };
+  });
+
+  return result;
+}
+
 module.exports = {
   createDonation,
   getDonations,
@@ -424,4 +493,5 @@ module.exports = {
   getBudget,
   setBudget,
   getFinancialAuditLog,
+  purchaseResource,
 };

@@ -41,7 +41,12 @@ async function getResources(filters = {}) {
     skip: calculateSkip(page, limit),
     take: parseInt(limit),
     include: {
-      warehouse: true
+      warehouse: true,
+      resourceAllocations: {
+        include: { disasterEvent: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }
     },
     orderBy: {
       name: 'asc'

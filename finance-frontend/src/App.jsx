@@ -7,6 +7,7 @@ import ExpensesPage from './pages/ExpensesPage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import BudgetPage from './pages/BudgetPage.jsx';
+import ProcurementPage from './pages/ProcurementPage.jsx';
 
 function Guard({ children }) {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -18,10 +19,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login"        element={<LoginPage />} />
         <Route path="/dashboard"    element={<Guard><DashboardPage /></Guard>} />
         <Route path="/donations"    element={<Guard><DonationsPage /></Guard>} />
         <Route path="/expenses"     element={<Guard><ExpensesPage /></Guard>} />
+        <Route path="/procurement"  element={<Guard><ProcurementPage /></Guard>} />
         <Route path="/transactions" element={<Guard><TransactionsPage /></Guard>} />
         <Route path="/reports"      element={<Guard><ReportsPage /></Guard>} />
         <Route path="/budget"       element={<Guard><BudgetPage /></Guard>} />

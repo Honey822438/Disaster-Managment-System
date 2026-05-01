@@ -4,12 +4,13 @@ import api from '../api/client.js';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const NAV = [
-  { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { path: '/donations', icon: '💚', label: 'Donations' },
-  { path: '/expenses', icon: '💸', label: 'Expenses' },
-  { path: '/budget', icon: '🎯', label: 'Budget' },
+  { path: '/dashboard',    icon: '📊', label: 'Dashboard' },
+  { path: '/donations',    icon: '💚', label: 'Donations' },
+  { path: '/expenses',     icon: '💸', label: 'Expenses' },
+  { path: '/procurement',  icon: '🛒', label: 'Procurement' },
+  { path: '/budget',       icon: '🎯', label: 'Budget' },
   { path: '/transactions', icon: '📋', label: 'Transactions' },
-  { path: '/reports', icon: '📈', label: 'Reports' },
+  { path: '/reports',      icon: '📈', label: 'Reports' },
 ];
 
 const COLORS = ['#10b981','#ef4444','#3b82f6','#f59e0b','#8b5cf6','#ec4899'];

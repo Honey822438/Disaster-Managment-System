@@ -26,4 +26,8 @@ router.post('/budget/:eventId', requireRole(['admin', 'finance_officer']), finan
 // Financial Audit Log — admin and finance_officer only
 router.get('/audit-log', requireRole(['admin', 'finance_officer']), financeController.getFinancialAuditLog);
 
+// Resource Purchase (Procurement) — finance_officer and admin only
+// Records expense + increases warehouse stock atomically
+router.post('/purchase-resource', requireRole(['admin', 'finance_officer']), financeController.purchaseResource);
+
 module.exports = router;

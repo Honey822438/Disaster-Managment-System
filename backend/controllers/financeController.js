@@ -122,9 +122,27 @@ async function getFinancialAuditLog(req, res) {
   }
 }
 
+async function purchaseResource(req, res) {
+  try {
+    const { resourceId, quantity, unitCost, disasterEventId, supplierName, receiptRef } = req.body;
+    if (!resourceId || !quantity || !unitCost || !disasterEventId) {
+      return res.status(400).json({ error: 'resourceId, quantity, unitCost, and disasterEventId are required' });
+    }
+    if (parseFloat(unitCost) <= 0) return res.status(400).json({ error: 'Unit cost must be greater than 0' });
+    if (parseInt(quantity) <= 0) return res.status(400).json({ error: 'Quantity must be greater than 0' });
+
+    const result = await financeService.purchaseResource(req.body, req.user.id);
+    res.status(201).json(result);
+  } catch (error) {
+    if (error.message.includes('not found')) return res.status(404).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to process purchase', details: error.message });
+  }
+}
+
 module.exports = {
   createDonation, getDonations,
   createExpense, approveExpense, getExpenses,
   getFinancialSummary, getFinancialTransactions,
   getBudget, setBudget, getFinancialAuditLog,
+  purchaseResource,
 };

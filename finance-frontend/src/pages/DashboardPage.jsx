@@ -7,6 +7,7 @@ const NAV = [
   { path: '/dashboard',    icon: '📊', label: 'Dashboard' },
   { path: '/donations',    icon: '💚', label: 'Donations' },
   { path: '/expenses',     icon: '💸', label: 'Expenses' },
+  { path: '/procurement',  icon: '🛒', label: 'Procurement' },
   { path: '/budget',       icon: '🎯', label: 'Budget' },
   { path: '/transactions', icon: '📋', label: 'Transactions' },
   { path: '/reports',      icon: '📈', label: 'Reports' },
